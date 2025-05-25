@@ -1,10 +1,9 @@
 package main
 
 import (
+	"deeployer/api"
 	"deeployer/db"
-	"deeployer/funcs"
 	"deeployer/tables"
-	"fmt"
 	"log"
 )
 
@@ -18,10 +17,7 @@ func getAllUsers() tables.Users {
 
 func main() {
 	db.MysqlConnection()
-	projectId := 2
-	fmt.Println("Building dist files for a react project")
-	err := funcs.Build(projectId)
-	if err != nil {
-		fmt.Println("Error buildling, err: ", err)
-	}
+	var port string = "3001"
+	log.Println("listening on port ", port)
+	api.Serve(port)
 }

@@ -60,3 +60,25 @@ func (c Configs) insertQuery() error {
 	}
 	return nil
 }
+
+func GetAllConfigs() ([]Config, error) {
+	query := "select * from configs;"
+
+	rows, err := db.DB.Query(query)
+	var projects []Config
+
+	if err != nil {
+		return projects, fmt.Errorf("error in query, err: %v", err)
+	}
+
+	for rows.Next() {
+		var c Config
+		rows.Scan(&c.Id, &c.UserId, &c.SshKey, &c.GitKey, &c.ProjectName, &c.RepoUrl, &c.Host, &c.User, &c.IsDockerised, &c.BuildCommands)
+		projects = append(projects, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return projects, fmt.Errorf("err while iteration, err %v", err)
+	}
+	return projects, nil
+}
