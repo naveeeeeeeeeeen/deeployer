@@ -1,34 +1,46 @@
 package tables
 
 import (
+	"database/sql"
 	"deeployer/db"
 	"fmt"
 )
 
 type Config struct {
-	Id          int
-	UserId      int
-	SshKey      string
-	GitKey      string
-	ProjectName string
-	RepoUrl     string
-	Host        string
-	User        string
+	Id            int
+	UserId        int
+	SshKey        string
+	GitKey        string
+	ProjectName   string
+	RepoUrl       string
+	Host          string
+	User          string
+	IsDockerised  bool
+	BuildCommands sql.NullString
 }
 
 type Configs []Config
 
 func GetProjectConfig(id int) (Config, error) {
-	query := fmt.Sprintf("SELECT * from configs where id = %d", id)
-	rows, err := db.DB.Query(query)
-	defer rows.Close()
 	var c Config
+	query := "select * from configs where id = ?;"
+	rows, err := db.DB.Query(query, id)
 	if err != nil {
 		return c, fmt.Errorf("error getting config %v", err)
 	}
+	defer rows.Close()
+	if rows.Next() {
 
-	for rows.Next() {
-		rows.Scan(&c.Id, &c.UserId, &c.SshKey, &c.GitKey, &c.ProjectName, &c.RepoUrl)
+		err := rows.Scan(&c.Id, &c.UserId, &c.SshKey, &c.GitKey, &c.ProjectName, &c.RepoUrl, &c.Host, &c.User, &c.IsDockerised, &c.BuildCommands)
+		if err != nil {
+			return c, fmt.Errorf("Error getting config values, %v", err)
+		}
+	} else {
+		return c, fmt.Errorf("No config found for this id= %d", id)
+	}
+
+	if err := rows.Err(); err != nil {
+		return c, fmt.Errorf("Row iteration error, %v", err)
 	}
 	return c, nil
 }

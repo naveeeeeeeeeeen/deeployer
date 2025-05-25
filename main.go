@@ -18,17 +18,10 @@ func getAllUsers() tables.Users {
 
 func main() {
 	db.MysqlConnection()
-
-	users := getAllUsers()
-
-	fmt.Println(users)
-
-	_, err := funcs.CreateUser("Naveen")
+	projectId := 2
+	fmt.Println("Building dist files for a react project")
+	err := funcs.Build(projectId)
 	if err != nil {
-		panic(err)
+		fmt.Println("Error buildling, err: ", err)
 	}
-
-	c := funcs.CreateConfig(1, "SSH KEY", "GITHUB KEY", "PROJECT NAME", "REPO URL", "jump-aws-staging.playo.io", "naveen")
-	funcs.Connect(c)
-
 }
