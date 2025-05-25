@@ -62,7 +62,7 @@ func (c Configs) insertQuery() error {
 }
 
 func GetAllConfigs() ([]Config, error) {
-	query := "select * from configs;"
+	query := "select project_name, is_dockerised, repourl, build_commands, host, user from configs;"
 
 	rows, err := db.DB.Query(query)
 	var projects []Config
@@ -73,7 +73,7 @@ func GetAllConfigs() ([]Config, error) {
 
 	for rows.Next() {
 		var c Config
-		rows.Scan(&c.Id, &c.UserId, &c.SshKey, &c.GitKey, &c.ProjectName, &c.RepoUrl, &c.Host, &c.User, &c.IsDockerised, &c.BuildCommands)
+		rows.Scan(&c.ProjectName, &c.IsDockerised, &c.RepoUrl, &c.BuildCommands, &c.Host, &c.User)
 		projects = append(projects, c)
 	}
 
