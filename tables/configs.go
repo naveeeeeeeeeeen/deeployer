@@ -21,7 +21,7 @@ type Config struct {
 
 type Configs []Config
 
-func GetProjectConfig(id int) (Config, error) {
+func GetProjectConfig(id string) (Config, error) {
 	var c Config
 	query := "select * from configs where id = ?;"
 	rows, err := db.DB.Query(query, id)

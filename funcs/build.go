@@ -113,43 +113,51 @@ func sendBuildFiles(dir string, host string) error {
 	}
 	// SINCE WE REQUIRE ROOT PERMISSIONS TO COPY FILE TO /var/http we are better of copy it to home
 	// and thne move them to /var/http
-	err = uploadDir(client, dir+"/dist/", "/home/ubuntu/dist")
+	err = uploadDir(client, dir+"/exc", "/home/ubuntu/deeployer/")
 
 	if err != nil {
 		return err
 	}
 
-	session, err := conn.NewSession()
-	if err != nil {
-		return err
-	}
-
-	command := "sudo rm -rf /var/http/* && sudo mv /home/ubuntu/dist/* /var/http/"
-	session.Stdin = os.Stdin
-	session.Stdout = os.Stdout
-	session.Stderr = os.Stderr
-	return session.Run(command)
+	return nil
+	/*
+		session, err := conn.NewSession()
+		if err != nil {
+			return err
+		}
+			command := "sudo rm -rf /var/http/* && sudo mv /home/ubuntu/dist/* /var/http/"
+			session.Stdin = os.Stdin
+			session.Stdout = os.Stdout
+			session.Stderr = os.Stderr
+			return session.Run(command)
+	*/
 }
 
 func runBuildCommands(commands string) string {
 	out, err := exec.Command("bash", "-c", commands).Output()
 	if err != nil {
-		log.Fatalf("error running commands, err: %v", err)
+		log.Fatalf("error running commands, err: %v", out)
 	}
 	return string(out)
 }
 
-func Build(configId int) error {
+func Build(configId string) error {
 	c, err := tables.GetProjectConfig(configId)
 	if err != nil {
 		return fmt.Errorf("error getting config, %v ", err)
 	}
 	dir := cloneRepo(c.RepoUrl, c.GitKey)
-	defaultReactBuildCommands := "bash && cd " + dir + " && npm install && npm run build"
+	var buildCommands string
+
+	if c.BuildCommands.Valid {
+		buildCommands = c.BuildCommands.String
+	} else {
+		buildCommands = "bash && cd " + dir + " && npm install && npm run build"
+	}
 	defer os.RemoveAll(dir)
 
-	buildOuput := runBuildCommands(defaultReactBuildCommands)
-	fmt.Println(buildOuput)
+	buildOuput := runBuildCommands(buildCommands)
+	log.Println("Build output: \n", buildOuput)
 	err = sendBuildFiles(dir, c.Host)
 	if err != nil {
 		log.Fatalf("Error uploading file, %v", err)

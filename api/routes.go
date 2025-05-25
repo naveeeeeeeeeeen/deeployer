@@ -7,6 +7,7 @@ import (
 
 func routes() {
 	http.HandleFunc("/projects", GetProjects)
+	http.HandleFunc("/deploy", DeployProject)
 }
 
 func Serve(port string) error {
