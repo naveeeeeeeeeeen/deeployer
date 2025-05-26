@@ -121,7 +121,6 @@ func sendBuildFiles(dir string, c *tables.Config) error {
 	if err != nil {
 		return err
 	}
-	log.Println("is dir", pathInfo.IsDir())
 	if pathInfo.IsDir() {
 		err = uploadDir(client, dir+"/"+c.BuildFilePath.String, c.DestPath.String)
 	} else {
@@ -133,13 +132,9 @@ func sendBuildFiles(dir string, c *tables.Config) error {
 			return err
 		}
 		defer src.Close()
-		dirInfo, err := client.Stat(c.DestPath.String)
+		_, err = client.Stat(c.DestPath.String)
 		if err != nil {
-			return err
-		}
-		log.Println("is dir", dirInfo.IsDir())
-		if !dirInfo.IsDir() {
-
+			log.Println("creating new dir in remote")
 			err = client.Mkdir(c.DestPath.String)
 			if err != nil {
 				log.Println("error creating a dir", err)
