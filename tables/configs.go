@@ -17,6 +17,10 @@ type Config struct {
 	User          string
 	IsDockerised  bool
 	BuildCommands sql.NullString
+	DestPath      sql.NullString
+	BuildFilePath sql.NullString
+	Language      sql.NullString
+	Framework     sql.NullString
 }
 
 type Configs []Config
@@ -31,12 +35,16 @@ func GetProjectConfig(id string) (Config, error) {
 	defer rows.Close()
 	if rows.Next() {
 
-		err := rows.Scan(&c.Id, &c.UserId, &c.SshKey, &c.GitKey, &c.ProjectName, &c.RepoUrl, &c.Host, &c.User, &c.IsDockerised, &c.BuildCommands)
+		err := rows.Scan(
+			&c.Id, &c.UserId, &c.SshKey, &c.GitKey, &c.ProjectName,
+			&c.RepoUrl, &c.Host, &c.User, &c.IsDockerised, &c.BuildCommands,
+			&c.DestPath, &c.BuildFilePath, &c.Language, &c.Framework,
+		)
 		if err != nil {
 			return c, fmt.Errorf("Error getting config values, %v", err)
 		}
 	} else {
-		return c, fmt.Errorf("No config found for this id= %d", id)
+		return c, fmt.Errorf("No config found for this id= %s", id)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -62,7 +70,7 @@ func (c Configs) insertQuery() error {
 }
 
 func GetAllConfigs() ([]Config, error) {
-	query := "select project_name, is_dockerised, repourl, build_commands, host, user from configs;"
+	query := "select project_name, is_dockerised, repourl, build_commands, host, user, dest_path, build_file_name from configs;"
 
 	rows, err := db.DB.Query(query)
 	var projects []Config
@@ -73,7 +81,7 @@ func GetAllConfigs() ([]Config, error) {
 
 	for rows.Next() {
 		var c Config
-		rows.Scan(&c.ProjectName, &c.IsDockerised, &c.RepoUrl, &c.BuildCommands, &c.Host, &c.User)
+		rows.Scan(&c.ProjectName, &c.IsDockerised, &c.RepoUrl, &c.BuildCommands, &c.Host, &c.User, &c.DestPath, &c.BuildFilePath)
 		projects = append(projects, c)
 	}
 

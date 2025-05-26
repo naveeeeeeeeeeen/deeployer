@@ -85,7 +85,7 @@ func uploadDir(client *sftp.Client, localPath string, remotePath string) error {
 	return nil
 }
 
-func sendBuildFiles(dir string, host string) error {
+func sendBuildFiles(dir string, c *tables.Config) error {
 	key, err := os.ReadFile("/Users/naveenwork/.ssh/ec2.pem")
 	if err != nil {
 		return err
@@ -105,32 +105,79 @@ func sendBuildFiles(dir string, host string) error {
 		Timeout:         5 * time.Second,
 	}
 
-	conn, err := ssh.Dial("tcp", host+":22", config)
+	conn, err := ssh.Dial("tcp", c.Host+":22", config)
 	defer conn.Close()
 	client, err := sftp.NewClient(conn)
 	if err != nil {
 		return err
 	}
-	// SINCE WE REQUIRE ROOT PERMISSIONS TO COPY FILE TO /var/http we are better of copy it to home
-	// and thne move them to /var/http
-	err = uploadDir(client, dir+"/exc", "/home/ubuntu/deeployer/")
-
+	log.Println("opening directory for inspection")
+	dest, err := os.Open(dir + "/" + c.BuildFilePath.String)
+	defer dest.Close()
 	if err != nil {
 		return err
 	}
+	pathInfo, err := dest.Stat()
+	if err != nil {
+		return err
+	}
+	log.Println("is dir", pathInfo.IsDir())
+	if pathInfo.IsDir() {
+		err = uploadDir(client, dir+"/"+c.BuildFilePath.String, c.DestPath.String)
+	} else {
+		// upload just a single build file
+		log.Println(dir + "/" + c.BuildFilePath.String)
+		log.Println(c.DestPath.String + "/" + c.BuildFilePath.String)
+		src, err := os.Open(dir + "/" + c.BuildFilePath.String)
+		if err != nil {
+			return err
+		}
+		defer src.Close()
+		dirInfo, err := client.Stat(c.DestPath.String)
+		if err != nil {
+			return err
+		}
+		log.Println("is dir", dirInfo.IsDir())
+		if !dirInfo.IsDir() {
 
-	return nil
-	/*
+			err = client.Mkdir(c.DestPath.String)
+			if err != nil {
+				log.Println("error creating a dir", err)
+			}
+		}
+		d, err := client.Create(c.DestPath.String + "/" + c.BuildFilePath.String)
+		if err != nil {
+			return err
+		}
+		defer d.Close()
+
+		_, err = io.Copy(d, src)
+		if err != nil {
+			return err
+		}
+		log.Println("uploaded file successfully")
+	}
+
+	var moveFiles bool = false
+	if err != nil {
+		log.Println("error while uploading Dir ", err)
+		return err
+	}
+
+	if moveFiles {
+		// SINCE WE REQUIRE ROOT PERMISSIONS TO COPY FILE TO /var/http we are better of copy it to home
+		// and thne move them to /var/http
 		session, err := conn.NewSession()
 		if err != nil {
 			return err
 		}
-			command := "sudo rm -rf /var/http/* && sudo mv /home/ubuntu/dist/* /var/http/"
-			session.Stdin = os.Stdin
-			session.Stdout = os.Stdout
-			session.Stderr = os.Stderr
-			return session.Run(command)
-	*/
+		command := "sudo rm -rf /var/http/* && sudo mv /home/ubuntu/dist/* /var/http/"
+		session.Stdin = os.Stdin
+		session.Stdout = os.Stdout
+		session.Stderr = os.Stderr
+		return session.Run(command)
+	}
+	return nil
 }
 
 func runBuildCommands(commands string) string {
@@ -147,20 +194,16 @@ func Build(configId string) error {
 		return fmt.Errorf("error getting config, %v ", err)
 	}
 	dir := cloneRepo(c.RepoUrl, c.GitKey)
-	var buildCommands string
+	commands := c.BuildCommands.String
 
-	if c.BuildCommands.Valid {
-		buildCommands = c.BuildCommands.String
-	} else {
-		buildCommands = "bash && cd " + dir + " && npm install && npm run build"
-	}
 	defer os.RemoveAll(dir)
-
-	buildOuput := runBuildCommands(buildCommands)
+	buildCommand := "cd " + dir + " && " + commands
+	buildOuput := runBuildCommands(buildCommand)
 	log.Println("Build output: \n", buildOuput)
-	err = sendBuildFiles(dir, c.Host)
+	err = sendBuildFiles(dir, &c)
 	if err != nil {
 		log.Fatalf("Error uploading file, %v", err)
 	}
+	log.Println("Build successful")
 	return err
 }

@@ -39,6 +39,7 @@ func buildByProjectId(w http.ResponseWriter, id string) {
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]string{"message": "success"})
+	return
 }
 
 func DeployProject(w http.ResponseWriter, r *http.Request) {
