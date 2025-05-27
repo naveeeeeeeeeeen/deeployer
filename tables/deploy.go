@@ -1,58 +1,72 @@
 package tables
 
 import (
+	"database/sql"
+	"deeployer/db"
 	"fmt"
+	"go/build"
 	"log"
-	"os"
 	"time"
-
-	"golang.org/x/crypto/ssh"
 )
 
-func (c Config) SSHConnect() {
-	keyPath := "/Users/naveenwork/.ssh/id_ed25519"
-	command := "ls /home/naveen"
+type Step struct {
+	Id           int
+	BuildLogId   int
+	Status       string
+	StatusInt    int
+	FailedLogs   sql.NullString
+	FailedReason sql.NullString
+}
 
-	key, err := os.ReadFile(keyPath)
-	if err != nil {
-		log.Fatalf("Cant read file %v", err)
+type BuildLog struct {
+	Id        int
+	ConfigId  int
+	Timestamp time.Time
+}
+
+type Builds []BuildLog
+type Steps []Step
+
+func (steps Steps) insertQuery() error {
+	query := "insert into build_logs (`build_log_id`, `status`" +
+		", `status_int`, `failed_logs`, `failed_reason`) values" +
+		" (?, ?, ?, ?, ?);"
+
+	for _, step := range steps {
+		res, err := db.DB.Exec(
+			query, step.BuildLogId, step.Status, step.StatusInt,
+			step.FailedLogs, step.FailedReason,
+		)
+		if err != nil {
+			return err
+		}
+
+		if rowCount, err := res.RowsAffected(); err == nil && rowCount > 0 {
+			log.Println("step inserted")
+		} else {
+			return fmt.Errorf("insert failed without any error message, please check")
+		}
 	}
+	return nil
+}
 
-	signer, err := ssh.ParsePrivateKey(key)
-
-	if err != nil {
-		log.Fatalf("cant parse key, %v", err)
+func (builds Builds) insertQuery() error {
+	query := "insert into config_logs (`config_id`, `timestamp`) values (?, ?);"
+	for _, build := range builds {
+		res, err := db.DB.Exec(query, build.ConfigId, build.Timestamp)
+		if err != nil {
+			return err
+		}
+		if rowCount, err := res.RowsAffected(); err == nil && rowCount > 0 {
+			log.Println("config inserted")
+		} else {
+			return fmt.Errorf("Insert failed without any error message, please check")
+		}
 	}
+	return nil
+}
 
-	config := &ssh.ClientConfig{
-		User: c.User,
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         5 * time.Second,
+
+
 	}
-
-	conn, err := ssh.Dial("tcp", c.Host+":22", config)
-	if err != nil {
-		log.Fatalf("err connecting via ssh %v", err)
-	}
-
-	defer conn.Close()
-
-	session, err := conn.NewSession()
-
-	if err != nil {
-		log.Fatalf("unaable to create connection, %v", err)
-	}
-
-	defer session.Close()
-
-	output, err := session.CombinedOutput(command)
-	if err != nil {
-		log.Fatalf("command exection failed, err: %v", err)
-	}
-
-	fmt.Printf("Output: \n%s", output)
-
 }

@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -35,5 +34,5 @@ func MysqlConnection() {
 			panic(err)
 		}
 	}
-	fmt.Println("Mysql Version: ", version)
+	log.Println("Mysql Version: ", version)
 }
