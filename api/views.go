@@ -67,23 +67,27 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 		response.message = "Something went wrong"
 	} else {
 		if user.CheckPassword(pass) {
-			user.CreateUserToken()
-			err := db.RedisSet(user.Token, "")
+			authToken := user.CreateUserToken()
+			err := db.RedisSet(authToken, authToken)
 			if err != nil {
 				response.message = "error generating token"
 				response.status = 0
+				json.NewEncoder(w).Encode(response.Json())
+				return
 			}
+			user.Token = authToken
 			response.data = user.Json()
-			json.NewEncoder(w).Encode(response)
+			response.status = 1
+			json.NewEncoder(w).Encode(response.Json())
 			return
 		}
 		response.status = 0
-		if len(user.UserName) > 0 {
+		if len(user.UserName) == 0 {
 			response.message = "No user found"
 		} else {
 			response.message = "Wrong password"
 		}
-		json.NewEncoder(w).Encode(response)
+		json.NewEncoder(w).Encode(response.Json())
 		return
 	}
 

@@ -33,8 +33,7 @@ func GenerateHashedPass(pass string) string {
 
 func CheckPass(pass string, hash string) bool {
 	password := []byte(pass)
-
-	err := bcrypt.CompareHashAndPassword(password, []byte(hash))
+	err := bcrypt.CompareHashAndPassword([]byte(hash), password)
 	if err != nil {
 		return false
 	}
@@ -44,7 +43,7 @@ func CheckPass(pass string, hash string) bool {
 func GenerateUserToken() string {
 	uuid, err := uuid.NewUUID()
 	if err != nil {
-		log.Println("error getting a token")
+		log.Println("error getting a token", err)
 	}
 	return uuid.String()
 }

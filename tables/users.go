@@ -64,7 +64,7 @@ func (u User) InsertUser() error {
 
 func GetUserByUsername(usernamme string) (User, error) {
 	var user User
-	query := "select name, password, username from users where username = ?;"
+	query := "select id, name, password, username from users where username = ?;"
 
 	rows, err := db.DB.Query(query, usernamme)
 
@@ -74,7 +74,7 @@ func GetUserByUsername(usernamme string) (User, error) {
 		return user, err
 	}
 	for rows.Next() {
-		err := rows.Scan(&user.Name, &user.Password, &user.UserName)
+		err := rows.Scan(&user.ID, &user.Name, &user.Password, &user.UserName)
 		if err != nil {
 			log.Println("error getting values ", err)
 			return user, err
@@ -90,6 +90,7 @@ func (user User) CheckPassword(pass string) bool {
 
 func (user User) Json() map[string]any {
 	return map[string]any{
+		"id":       user.ID,
 		"username": user.UserName,
 		"name":     user.Name,
 		"token":    user.Token,
@@ -98,6 +99,5 @@ func (user User) Json() map[string]any {
 
 func (user User) CreateUserToken() string {
 	uuid := GenerateUserToken()
-	user.Token = uuid
 	return uuid
 }
