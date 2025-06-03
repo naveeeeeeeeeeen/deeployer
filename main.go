@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"deeployer/api"
 	"deeployer/db"
 	"deeployer/tables"
@@ -15,9 +16,12 @@ func getAllUsers() tables.Users {
 	return users
 }
 
+var ctx = context.Background()
+
 func main() {
 	db.MysqlConnection()
 	var port string = "3001"
 	log.Println("listening on port ", port)
+	db.RedisInit()
 	api.Serve(port)
 }

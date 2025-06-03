@@ -1,6 +1,7 @@
 package api
 
 import (
+	"deeployer/db"
 	"deeployer/funcs"
 	"deeployer/tables"
 	"encoding/json"
@@ -49,5 +50,52 @@ func DeployProject(w http.ResponseWriter, r *http.Request) {
 		buildByProjectId(w, projectId)
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func loginUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	defer r.Body.Close()
+	var body map[string]string
+	json.NewDecoder(r.Body).Decode(&body)
+	username := body["username"]
+	pass := body["password"]
+	var response AppResponse
+	user, err := tables.GetUserByUsername(username)
+	if err != nil {
+		response.status = 0
+		response.message = "Something went wrong"
+	} else {
+		if user.CheckPassword(pass) {
+			user.CreateUserToken()
+			err := db.RedisSet(user.Token, "")
+			if err != nil {
+				response.message = "error generating token"
+				response.status = 0
+			}
+			response.data = user.Json()
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		response.status = 0
+		if len(user.UserName) > 0 {
+			response.message = "No user found"
+		} else {
+			response.message = "Wrong password"
+		}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+}
+
+func Login(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		loginUser(w, r)
+		return
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 }

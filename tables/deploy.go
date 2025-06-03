@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"deeployer/db"
 	"fmt"
-	"go/build"
 	"log"
 	"time"
 )
@@ -64,9 +63,4 @@ func (builds Builds) insertQuery() error {
 		}
 	}
 	return nil
-}
-
-
-
-	}
 }
